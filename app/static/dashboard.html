@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI X Account Manager - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #1DA1F2;
+            font-size: 2em;
+        }
+
+        .auth-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .status-badge.authenticated {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.not-authenticated {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .tab {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .button.secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .button.danger {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .tweet-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .tweet-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .tweet-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .tweet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+
+        .tweet-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-draft { background: #e3f2fd; color: #1976d2; }
+        .status-scheduled { background: #fff3e0; color: #f57c00; }
+        .status-posted { background: #e8f5e9; color: #388e3c; }
+        .status-failed { background: #ffebee; color: #d32f2f; }
+
+        .tweet-content {
+            margin: 15px 0;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .tweet-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .tweet-actions button {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🤖 AI X Account Manager</h1>
+            </div>
+            <div class="auth-status">
+                <span id="authStatus" class="status-badge">Checking...</span>
+                <button id="authButton" class="button" style="display:none;">Sign in with Twitter</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('dashboard')">📊 Dashboard</div>
+            <div class="tab" onclick="showTab('generate')">🤖 AI Generate</div>
+            <div class="tab" onclick="showTab('create')">✏️ Create Tweet</div>
+            <div class="tab" onclick="showTab('tweets')">📝 My Tweets</div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="content active">
+            <h2 style="margin-bottom: 20px;">Analytics Overview</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalTweets">-</div>
+                    <div class="stat-label">Total Tweets</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="postedTweets">-</div>
+                    <div class="stat-label">Posted</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="scheduledTweets">-</div>
+                    <div class="stat-label">Scheduled</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="draftTweets">-</div>
+                    <div class="stat-label">Drafts</div>
+                </div>
+            </div>
+            <div id="dashboardContent"></div>
+        </div>
+
+        <!-- AI Generate Tab -->
+        <div id="generate" class="content">
+            <h2 style="margin-bottom: 20px;">Generate Tweets with AI</h2>
+            <div id="generateAlert"></div>
+
+            <div class="form-group">
+                <label for="topic">Topic or Theme</label>
+                <input type="text" id="topic" placeholder="e.g., artificial intelligence trends, productivity tips">
+            </div>
+
+            <div class="form-group">
+                <label for="style">Writing Style</label>
+                <select id="style">
+                    <option value="professional">Professional</option>
+                    <option value="casual">Casual</option>
+                    <option value="humorous">Humorous</option>
+                    <option value="informative">Informative</option>
+                    <option value="inspirational">Inspirational</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="tone">Tone</label>
+                <select id="tone">
+                    <option value="engaging">Engaging</option>
+                    <option value="friendly">Friendly</option>
+                    <option value="authoritative">Authoritative</option>
+                    <option value="conversational">Conversational</option>
+                    <option value="educational">Educational</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="count">Number of Tweets</label>
+                <input type="number" id="count" value="3" min="1" max="10">
+            </div>
+
+            <button class="button" onclick="generateTweets()">🤖 Generate Tweets</button>
+
+            <div id="generatedTweets" style="margin-top: 30px;"></div>
+        </div>
+
+        <!-- Create Tweet Tab -->
+        <div id="create" class="content">
+            <h2 style="margin-bottom: 20px;">Create Manual Tweet</h2>
+            <div id="createAlert"></div>
+
+            <div class="form-group">
+                <label for="tweetContent">Tweet Content</label>
+                <textarea id="tweetContent" maxlength="280" placeholder="What's happening?"></textarea>
+                <small id="charCount">0 / 280 characters</small>
+            </div>
+
+            <div class="form-group">
+                <label for="scheduleTime">Schedule Time (Optional)</label>
+                <input type="datetime-local" id="scheduleTime">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="button" onclick="createTweet(false)">📝 Save as Draft</button>
+                <button class="button secondary" onclick="createTweet(true)">🚀 Post Now</button>
+            </div>
+        </div>
+
+        <!-- My Tweets Tab -->
+        <div id="tweets" class="content">
+            <h2 style="margin-bottom: 20px;">My Tweets</h2>
+
+            <div class="form-group">
+                <label for="filterStatus">Filter by Status</label>
+                <select id="filterStatus" onchange="loadTweets()">
+                    <option value="">All Tweets</option>
+                    <option value="draft">Drafts</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="posted">Posted</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </div>
+
+            <div id="tweetsList"></div>
+        </div>
+    </div>
+
+    <script>
+        let isAuthenticated = false;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            updateCharCount();
+
+            // Add event listener for character count
+            document.getElementById('tweetContent').addEventListener('input', updateCharCount);
+        });
+
+        // Check authentication status
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/twitter/status');
+                const data = await response.json();
+
+                isAuthenticated = data.authenticated;
+
+                const authStatus = document.getElementById('authStatus');
+                const authButton = document.getElementById('authButton');
+
+                if (data.authenticated) {
+                    authStatus.className = 'status-badge authenticated';
+                    authStatus.textContent = `@${data.user.username}`;
+                    authButton.style.display = 'none';
+                    loadDashboard();
+                } else {
+                    authStatus.className = 'status-badge not-authenticated';
+                    authStatus.textContent = 'Not Connected';
+                    authButton.style.display = 'block';
+                    authButton.onclick = () => window.location.href = '/api/auth/twitter/login';
+                }
+            } catch (error) {
+                console.error('Error checking auth:', error);
+            }
+        }
+
+        // Show alert
+        function showAlert(elementId, message, type = 'info') {
+            const alertDiv = document.getElementById(elementId);
+            alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => alertDiv.innerHTML = '', 5000);
+        }
+
+        // Show tab
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+
+            if (tabName === 'dashboard') loadDashboard();
+            if (tabName === 'tweets') loadTweets();
+        }
+
+        // Update character count
+        function updateCharCount() {
+            const content = document.getElementById('tweetContent').value;
+            document.getElementById('charCount').textContent = `${content.length} / 280 characters`;
+        }
+
+        // Load dashboard
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/analytics/summary?days=30');
+                const data = await response.json();
+
+                document.getElementById('totalTweets').textContent = data.total_tweets;
+                document.getElementById('postedTweets').textContent = data.posted_tweets;
+                document.getElementById('scheduledTweets').textContent = data.scheduled_tweets;
+                document.getElementById('draftTweets').textContent = data.draft_tweets;
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // Generate tweets
+        async function generateTweets() {
+            if (!isAuthenticated) {
+                showAlert('generateAlert', 'Please authenticate with Twitter first', 'error');
+                return;
+            }
+
+            const topic = document.getElementById('topic').value;
+            const style = document.getElementById('style').value;
+            const tone = document.getElementById('tone').value;
+            const count = document.getElementById('count').value;
+
+            showAlert('generateAlert', '🤖 Generating tweets...', 'info');
+
+            try {
+                const response = await fetch('/api/ai/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic, style, tone, count: parseInt(count) })
+                });
+
+                const tweets = await response.json();
+
+                if (response.ok) {
+                    showAlert('generateAlert', `✅ Generated ${tweets.length} tweets!`, 'success');
+                    displayGeneratedTweets(tweets);
+                } else {
+                    showAlert('generateAlert', `❌ Error: ${tweets.detail}`, 'error');
+                }
+            } catch (error) {
+                showAlert('generateAlert', '❌ Error generating tweets', 'error');
+            }
+        }
+
+        // Display generated tweets
+        function displayGeneratedTweets(tweets) {
+            const container = document.getElementById('generatedTweets');
+            container.innerHTML = '<h3 style="margin-bottom: 15px;">Generated Tweets</h3>';
+
+            tweets.forEach(tweet => {
+                container.innerHTML += `
+                    <div class="tweet-card">
+                        <div class="tweet-content">${tweet.content}</div>
+                        <div class="tweet-actions">
+                            <button class="button" onclick="approveTweet(${tweet.id})">✅ Approve</button>
+                            <button class="button danger" onclick="rejectTweet(${tweet.id})">❌ Reject</button>
+                            <button class="button secondary" onclick="postTweetNow(${tweet.id})">🚀 Post Now</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Create tweet
+        async function createTweet(postNow) {
+            if (!isAuthenticated) {
+                showAlert('createAlert', 'Please authenticate with Twitter first', 'error');
+                return;
+            }
+
+            const content = document.getElementById('tweetContent').value;
+            const scheduleTime = document.getElementById('scheduleTime').value;
+
+            if (!content) {
+                showAlert('createAlert', 'Please enter tweet content', 'error');
+                return;
+            }
+
+            try {
+                // Create tweet
+                const response = await fetch('/api/tweets/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content,
+                        scheduled_time: scheduleTime || null,
+                        source: 'manual'
+                    })
+                });
+
+                const tweet = await response.json();
+
+                if (response.ok) {
+                    if (postNow) {
+                        // Post immediately
+                        await postTweetNow(tweet.id);
+                    } else {
+                        showAlert('createAlert', '✅ Tweet saved as draft!', 'success');
+                        document.getElementById('tweetContent').value = '';
+                        updateCharCount();
+                    }
+                } else {
+                    showAlert('createAlert', `❌ Error: ${tweet.detail}`, 'error');
+                }
+            } catch (error) {
+                showAlert('createAlert', '❌ Error creating tweet', 'error');
+            }
+        }
+
+        // Load tweets
+        async function loadTweets() {
+            const status = document.getElementById('filterStatus').value;
+            const url = status ? `/api/tweets/?status=${status}` : '/api/tweets/';
+
+            const container = document.getElementById('tweetsList');
+            container.innerHTML = '<div class="loading">Loading tweets...</div>';
+
+            try {
+                const response = await fetch(url);
+                const tweets = await response.json();
+
+                if (tweets.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No tweets found</h3>
+                            <p>Start by generating some tweets with AI or create your own!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = '';
+                tweets.forEach(tweet => {
+                    const statusClass = `status-${tweet.status}`;
+                    container.innerHTML += `
+                        <div class="tweet-card">
+                            <div class="tweet-header">
+                                <span class="tweet-status ${statusClass}">${tweet.status.toUpperCase()}</span>
+                                <small>${new Date(tweet.created_at).toLocaleString()}</small>
+                            </div>
+                            <div class="tweet-content">${tweet.content}</div>
+                            ${tweet.twitter_url ? `<a href="${tweet.twitter_url}" target="_blank">View on Twitter</a>` : ''}
+                            <div class="tweet-actions">
+                                ${tweet.status === 'draft' ? `
+                                    <button class="button" onclick="approveTweet(${tweet.id})">✅ Approve</button>
+                                    <button class="button secondary" onclick="postTweetNow(${tweet.id})">🚀 Post Now</button>
+                                ` : ''}
+                                ${tweet.status === 'scheduled' ? `
+                                    <button class="button secondary" onclick="postTweetNow(${tweet.id})">🚀 Post Now</button>
+                                ` : ''}
+                                ${tweet.status === 'posted' ? `
+                                    <span>👍 ${tweet.likes_count} | 🔄 ${tweet.retweets_count} | 💬 ${tweet.replies_count}</span>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                container.innerHTML = '<div class="alert alert-error">Error loading tweets</div>';
+            }
+        }
+
+        // Approve tweet
+        async function approveTweet(tweetId) {
+            try {
+                await fetch(`/api/tweets/${tweetId}/approve`, { method: 'POST' });
+                loadTweets();
+            } catch (error) {
+                alert('Error approving tweet');
+            }
+        }
+
+        // Reject tweet
+        async function rejectTweet(tweetId) {
+            try {
+                await fetch(`/api/tweets/${tweetId}/reject`, { method: 'POST' });
+                loadTweets();
+            } catch (error) {
+                alert('Error rejecting tweet');
+            }
+        }
+
+        // Post tweet now
+        async function postTweetNow(tweetId) {
+            try {
+                const response = await fetch(`/api/tweets/${tweetId}/post`, { method: 'POST' });
+                if (response.ok) {
+                    alert('✅ Tweet posted successfully!');
+                    loadTweets();
+                    loadDashboard();
+                } else {
+                    const error = await response.json();
+                    alert(`❌ Error: ${error.detail}`);
+                }
+            } catch (error) {
+                alert('❌ Error posting tweet');
+            }
+        }
+    </script>
+</body>
+</html>
