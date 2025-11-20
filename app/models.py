@@ -87,7 +87,7 @@ class ActivityLog(Base):
     tweet_id = Column(Integer, nullable=True)
     success = Column(Boolean, default=True)
     error_message = Column(Text, nullable=True)
-    metadata = Column(Text, nullable=True)  # JSON string for additional data
+    extra_data = Column(Text, nullable=True)  # JSON string for additional data
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     def __repr__(self):
