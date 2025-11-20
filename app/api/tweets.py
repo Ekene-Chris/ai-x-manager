@@ -10,19 +10,37 @@ from app.models import Tweet, TweetStatus, TweetSource, ActivityLog
 from app.schemas import TweetCreate, TweetUpdate, TweetResponse
 from app.services.scheduler_service import SchedulerService
 from app.services.twitter_service import TwitterService
+from app.services.twitter_oauth_service import TwitterOAuthService
 
 router = APIRouter(prefix="/tweets", tags=["tweets"])
 
 # Global instances (will be initialized in main.py)
 scheduler_service: Optional[SchedulerService] = None
 twitter_service: Optional[TwitterService] = None
+oauth_service: Optional[TwitterOAuthService] = None
 
 
-def set_services(scheduler: SchedulerService, twitter: TwitterService):
+def set_services(scheduler: SchedulerService, twitter: Optional[TwitterService] = None, oauth: Optional[TwitterOAuthService] = None):
     """Set service instances"""
-    global scheduler_service, twitter_service
+    global scheduler_service, twitter_service, oauth_service
     scheduler_service = scheduler
     twitter_service = twitter
+    oauth_service = oauth
+
+
+def get_twitter_client(db: Session):
+    """Get Twitter client (OAuth or legacy)"""
+    # Prefer OAuth if available
+    if oauth_service:
+        client = oauth_service.get_client(db)
+        if client:
+            return client
+
+    # Fall back to legacy service
+    if twitter_service:
+        return twitter_service.client
+
+    return None
 
 
 @router.get("/", response_model=List[TweetResponse])
@@ -173,17 +191,28 @@ def post_tweet_now(tweet_id: int, db: Session = Depends(get_db)):
     if db_tweet.status == TweetStatus.POSTED:
         raise HTTPException(status_code=400, detail="Tweet already posted")
 
-    if not twitter_service:
-        raise HTTPException(status_code=500, detail="Twitter service not available")
+    # Get Twitter client (OAuth or legacy)
+    client = get_twitter_client(db)
+    if not client:
+        raise HTTPException(
+            status_code=500,
+            detail="Twitter service not available. Please authenticate via /api/auth/twitter/login"
+        )
 
     try:
-        # Post to Twitter
-        result = twitter_service.post_tweet(db_tweet.content)
+        # Post to Twitter using Tweepy client
+        if len(db_tweet.content) > 280:
+            raise HTTPException(status_code=400, detail="Tweet exceeds 280 characters")
 
-        if result:
+        response = client.create_tweet(text=db_tweet.content)
+
+        if response.data:
+            tweet_id_str = response.data["id"]
+            tweet_url = f"https://twitter.com/i/web/status/{tweet_id_str}"
+
             db_tweet.status = TweetStatus.POSTED
-            db_tweet.twitter_id = result["id"]
-            db_tweet.twitter_url = result["url"]
+            db_tweet.twitter_id = tweet_id_str
+            db_tweet.twitter_url = tweet_url
             db_tweet.posted_time = datetime.now(timezone.utc)
             db_tweet.error_message = None
 
@@ -205,7 +234,7 @@ def post_tweet_now(tweet_id: int, db: Session = Depends(get_db)):
 
             return db_tweet
         else:
-            raise HTTPException(status_code=500, detail="Failed to post tweet")
+            raise HTTPException(status_code=500, detail="Failed to post tweet - no response data")
 
     except Exception as e:
         db_tweet.status = TweetStatus.FAILED

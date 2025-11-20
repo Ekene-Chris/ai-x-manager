@@ -53,13 +53,15 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"Twitter OAuth not configured: {e}")
 
-    # Initialize Twitter service (legacy mode or fallback)
-    try:
-        twitter_service = TwitterService()
-        logger.info("Twitter service initialized")
-    except Exception as e:
-        logger.warning(f"Twitter service not available: {e}")
-        logger.info("Use OAuth authentication via /api/auth/twitter/login")
+    # Initialize Twitter service (legacy mode - optional, only if legacy keys are set)
+    if settings.twitter_api_key and settings.twitter_api_secret:
+        try:
+            twitter_service = TwitterService()
+            logger.info("Twitter service (legacy) initialized")
+        except Exception as e:
+            logger.warning(f"Twitter service not available: {e}")
+    else:
+        logger.info("Legacy Twitter API keys not set - will use OAuth for tweet posting")
 
     try:
         llm_service = LLMService()
@@ -75,7 +77,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to initialize scheduler service: {e}")
 
     # Set service instances in API routers
-    tweets.set_services(scheduler_service, twitter_service)
+    tweets.set_services(scheduler_service, twitter_service, oauth_service)
     ai.set_llm_service(llm_service)
 
     logger.info("All services initialized successfully")

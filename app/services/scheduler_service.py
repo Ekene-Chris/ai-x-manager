@@ -8,8 +8,7 @@ from typing import Optional
 import logging
 
 from app.database import SessionLocal
-from app.models import Tweet, TweetStatus, ActivityLog
-from app.services.twitter_service import TwitterService
+from app.models import Tweet, TweetStatus, ActivityLog, TwitterAuth
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +19,31 @@ class SchedulerService:
     def __init__(self):
         """Initialize scheduler"""
         self.scheduler = BackgroundScheduler(timezone=timezone.utc)
-        self.twitter_service = TwitterService()
         logger.info("Scheduler service initialized")
+
+    def _get_twitter_client(self, db: Session):
+        """Get Twitter client using OAuth"""
+        try:
+            # Import here to avoid circular dependency
+            from app.services.twitter_oauth_service import TwitterOAuthService
+
+            # Get OAuth authentication from database
+            auth = db.query(TwitterAuth).filter(TwitterAuth.is_active == True).first()
+            if not auth or not auth.access_token:
+                logger.error("No active Twitter authentication found")
+                return None
+
+            # Create Tweepy client with OAuth token
+            import tweepy
+            client = tweepy.Client(
+                bearer_token=auth.access_token,
+                wait_on_rate_limit=True,
+            )
+            return client
+
+        except Exception as e:
+            logger.error(f"Error getting Twitter client: {str(e)}")
+            return None
 
     def start(self):
         """Start the scheduler"""
@@ -151,15 +173,23 @@ class SchedulerService:
                 logger.warning(f"Tweet {tweet_id} is not in SCHEDULED status, skipping")
                 return
 
+            # Get Twitter client
+            client = self._get_twitter_client(db)
+            if not client:
+                raise Exception("Twitter client not available - please authenticate")
+
             # Post to Twitter
             logger.info(f"Posting scheduled tweet {tweet_id}: {tweet.content[:50]}...")
-            result = self.twitter_service.post_tweet(tweet.content)
+            response = client.create_tweet(text=tweet.content)
 
-            if result:
+            if response.data:
+                tweet_id_str = response.data["id"]
+                tweet_url = f"https://twitter.com/i/web/status/{tweet_id_str}"
+
                 # Update tweet in database
                 tweet.status = TweetStatus.POSTED
-                tweet.twitter_id = result["id"]
-                tweet.twitter_url = result["url"]
+                tweet.twitter_id = tweet_id_str
+                tweet.twitter_url = tweet_url
                 tweet.posted_time = datetime.now(timezone.utc)
                 tweet.error_message = None
 
@@ -169,15 +199,15 @@ class SchedulerService:
                     description=f"Scheduled tweet posted successfully",
                     tweet_id=tweet_id,
                     success=True,
-                    metadata=str(result),
+                    extra_data=str(response.data),
                 )
                 db.add(activity)
 
-                logger.info(f"Tweet {tweet_id} posted successfully: {result['url']}")
+                logger.info(f"Tweet {tweet_id} posted successfully: {tweet_url}")
             else:
                 # Mark as failed
                 tweet.status = TweetStatus.FAILED
-                tweet.error_message = "Failed to post to Twitter"
+                tweet.error_message = "Failed to post to Twitter - no response data"
                 tweet.retry_count += 1
 
                 # Log activity
@@ -186,7 +216,7 @@ class SchedulerService:
                     description="Failed to post scheduled tweet",
                     tweet_id=tweet_id,
                     success=False,
-                    error_message="Failed to post to Twitter",
+                    error_message="Failed to post to Twitter - no response data",
                 )
                 db.add(activity)
 
