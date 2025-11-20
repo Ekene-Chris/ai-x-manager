@@ -1,6 +1,6 @@
 """Main FastAPI application"""
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +15,7 @@ from app.services.scheduler_service import SchedulerService
 from app.services.twitter_service import TwitterService
 from app.services.twitter_oauth_service import TwitterOAuthService
 from app.services.llm_service import LLMService
+from app.auth_middleware import auth_middleware, check_dashboard_auth
 
 # Configure logging
 logging.basicConfig(
@@ -128,8 +129,12 @@ def health_check():
 
 # Root endpoint - serve web UI
 @app.get("/", response_class=HTMLResponse)
-def read_root():
+def read_root(request: Request):
     """Serve the interactive web dashboard"""
+    # Check authentication if configured
+    if not check_dashboard_auth(request):
+        return auth_middleware.get_auth_response()
+
     dashboard_path = Path(__file__).parent / "static" / "dashboard.html"
     with open(dashboard_path, "r") as f:
         return f.read()

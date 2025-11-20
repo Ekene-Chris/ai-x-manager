@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     environment: str = "development"
     log_level: str = "INFO"
 
+    # Dashboard Authentication (Optional but recommended for production)
+    dashboard_username: Optional[str] = None
+    dashboard_password: Optional[str] = None
+
     # Scheduler
     scheduler_timezone: str = "UTC"
 
