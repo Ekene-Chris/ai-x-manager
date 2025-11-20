@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# AI X Manager specific
+ai_x_manager.db
+*.sqlite
+.env.local
+logs/
