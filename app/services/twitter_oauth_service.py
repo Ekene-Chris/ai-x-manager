@@ -29,6 +29,18 @@ class TwitterOAuthService:
         self.client_secret = settings.twitter_client_secret
         self.redirect_uri = settings.twitter_redirect_uri
 
+        # Validate credentials are set
+        if not self.client_id or not self.client_secret:
+            error_msg = (
+                "Twitter OAuth credentials not configured. "
+                "Please set TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET environment variables. "
+                "In Azure Container Apps, use: "
+                "az containerapp secret set --name <app> --resource-group <rg> "
+                "--secrets twitter-client-id='<id>' twitter-client-secret='<secret>'"
+            )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
         # Ensure HTTPS in production for security
         if settings.environment == "production" and self.redirect_uri.startswith("http://"):
             logger.warning(f"Redirect URI uses HTTP in production: {self.redirect_uri}")
