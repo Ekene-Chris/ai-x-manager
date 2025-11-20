@@ -6,11 +6,18 @@ from typing import Optional, Dict, Any
 import logging
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
+import os
 
 from app.config import settings
 from app.models import TwitterAuth
 
 logger = logging.getLogger(__name__)
+
+# Allow OAuth over HTTP when behind a secure reverse proxy (Azure Container Apps, etc.)
+# The external traffic is HTTPS, but internal container communication might be HTTP
+if settings.environment == "production":
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    logger.info("OAuth insecure transport enabled for production (behind secure proxy)")
 
 
 class TwitterOAuthService:
@@ -21,6 +28,12 @@ class TwitterOAuthService:
         self.client_id = settings.twitter_client_id
         self.client_secret = settings.twitter_client_secret
         self.redirect_uri = settings.twitter_redirect_uri
+
+        # Ensure HTTPS in production for security
+        if settings.environment == "production" and self.redirect_uri.startswith("http://"):
+            logger.warning(f"Redirect URI uses HTTP in production: {self.redirect_uri}")
+            logger.warning("Consider updating TWITTER_REDIRECT_URI to use HTTPS")
+
         self.oauth2_user_handler = None
         self._init_oauth_handler()
 
