@@ -2,6 +2,10 @@
 
 from pydantic_settings import BaseSettings
 from typing import Optional
+import logging
+import os
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -46,3 +50,22 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Debug logging for configuration
+logger.info(f"Environment: {settings.environment}")
+logger.info(f"Twitter Client ID set: {bool(settings.twitter_client_id)}")
+logger.info(f"Twitter Client Secret set: {bool(settings.twitter_client_secret)}")
+logger.info(f"Twitter Redirect URI: {settings.twitter_redirect_uri}")
+
+# Check raw environment variables
+if settings.environment == "production":
+    logger.info("Checking raw environment variables:")
+    logger.info(f"  TWITTER_CLIENT_ID env var: {bool(os.getenv('TWITTER_CLIENT_ID'))}")
+    logger.info(f"  twitter_client_id env var: {bool(os.getenv('twitter_client_id'))}")
+
+    # Log first few characters if set
+    client_id = os.getenv('TWITTER_CLIENT_ID') or os.getenv('twitter_client_id')
+    if client_id:
+        logger.info(f"  Client ID starts with: {client_id[:10]}...")
+    else:
+        logger.warning("  No Twitter Client ID found in environment variables!")

@@ -127,6 +127,27 @@ def health_check():
     }
 
 
+# Debug config endpoint
+@app.get("/debug/config")
+def debug_config():
+    """Debug endpoint to check configuration (only in production for troubleshooting)"""
+    import os
+    return {
+        "environment": settings.environment,
+        "twitter_client_id_set": bool(settings.twitter_client_id),
+        "twitter_client_id_length": len(settings.twitter_client_id) if settings.twitter_client_id else 0,
+        "twitter_client_secret_set": bool(settings.twitter_client_secret),
+        "twitter_redirect_uri": settings.twitter_redirect_uri,
+        "azure_openai_endpoint_set": bool(settings.azure_openai_endpoint),
+        "dashboard_username_set": bool(settings.dashboard_username),
+        "raw_env_vars": {
+            "TWITTER_CLIENT_ID": bool(os.getenv("TWITTER_CLIENT_ID")),
+            "twitter_client_id": bool(os.getenv("twitter_client_id")),
+            "ENVIRONMENT": os.getenv("ENVIRONMENT"),
+        }
+    }
+
+
 # Root endpoint - serve web UI
 @app.get("/", response_class=HTMLResponse)
 def read_root(request: Request):
