@@ -9,9 +9,10 @@ import logging
 
 from app.config import settings
 from app.database import init_db
-from app.api import tweets, ai, analytics
+from app.api import tweets, ai, analytics, auth
 from app.services.scheduler_service import SchedulerService
 from app.services.twitter_service import TwitterService
+from app.services.twitter_oauth_service import TwitterOAuthService
 from app.services.llm_service import LLMService
 
 # Configure logging
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 scheduler_service = None
 twitter_service = None
 llm_service = None
+oauth_service = None
 
 
 @asynccontextmanager
@@ -38,13 +40,24 @@ async def lifespan(app: FastAPI):
     logger.info("Database initialized")
 
     # Initialize services
-    global scheduler_service, twitter_service, llm_service
+    global scheduler_service, twitter_service, llm_service, oauth_service
 
+    # Initialize OAuth service if configured
+    if settings.twitter_client_id and settings.twitter_client_secret:
+        try:
+            oauth_service = TwitterOAuthService()
+            auth.set_oauth_service(oauth_service)
+            logger.info("Twitter OAuth service initialized")
+        except Exception as e:
+            logger.warning(f"Twitter OAuth not configured: {e}")
+
+    # Initialize Twitter service (legacy mode or fallback)
     try:
         twitter_service = TwitterService()
         logger.info("Twitter service initialized")
     except Exception as e:
-        logger.error(f"Failed to initialize Twitter service: {e}")
+        logger.warning(f"Twitter service not available: {e}")
+        logger.info("Use OAuth authentication via /api/auth/twitter/login")
 
     try:
         llm_service = LLMService()
@@ -92,6 +105,7 @@ app.add_middleware(
 )
 
 # Include API routers
+app.include_router(auth.router, prefix="/api")
 app.include_router(tweets.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
@@ -269,6 +283,13 @@ def read_root():
 
         <div class="grid">
             <div class="card">
+                <h2>🐦 Connect Twitter</h2>
+                <p>Authenticate with Twitter using OAuth 2.0. Simple "Sign in with Twitter" - no API keys needed!</p>
+                <a href="/api/auth/twitter/login" class="button">Sign in with Twitter</a>
+                <a href="/api/auth/twitter/status" class="button button-secondary" style="margin-top:10px; display:inline-block">Check Status</a>
+            </div>
+
+            <div class="card">
                 <h2>📝 Tweet Management</h2>
                 <p>Create, schedule, and manage your tweets with ease. Support for both manual and AI-generated content.</p>
                 <a href="/docs#/tweets" class="button">Manage Tweets</a>
@@ -289,6 +310,12 @@ def read_root():
 
         <div class="api-docs">
             <h2>🚀 Quick Start - API Endpoints</h2>
+
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <code>/api/auth/twitter/login</code>
+                <p>Authenticate with Twitter (OAuth 2.0)</p>
+            </div>
 
             <div class="endpoint">
                 <span class="method post">POST</span>

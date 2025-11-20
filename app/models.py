@@ -119,3 +119,30 @@ class CommentRule(Base):
 
     def __repr__(self):
         return f"<CommentRule(id={self.id}, name={self.name}, is_active={self.is_active})>"
+
+
+class TwitterAuth(Base):
+    """Twitter OAuth authentication tokens"""
+    __tablename__ = "twitter_auth"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # OAuth tokens
+    access_token = Column(Text, nullable=True)
+    refresh_token = Column(Text, nullable=True)
+    token_expires_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Twitter user info
+    twitter_user_id = Column(String(100), nullable=True)
+    twitter_username = Column(String(100), nullable=True)
+    twitter_name = Column(String(200), nullable=True)
+
+    # Status
+    is_active = Column(Boolean, default=True)
+
+    # Metadata
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    def __repr__(self):
+        return f"<TwitterAuth(username=@{self.twitter_username}, is_active={self.is_active})>"

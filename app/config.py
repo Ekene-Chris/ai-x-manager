@@ -10,11 +10,16 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "sqlite:///./ai_x_manager.db"
 
-    # X (Twitter) API
-    twitter_api_key: str
-    twitter_api_secret: str
-    twitter_access_token: str
-    twitter_access_token_secret: str
+    # X (Twitter) API - OAuth 2.0 (Recommended)
+    twitter_client_id: Optional[str] = None
+    twitter_client_secret: Optional[str] = None
+    twitter_redirect_uri: str = "http://localhost:8000/api/auth/twitter/callback"
+
+    # X (Twitter) API - Legacy (Optional - for direct API keys)
+    twitter_api_key: Optional[str] = None
+    twitter_api_secret: Optional[str] = None
+    twitter_access_token: Optional[str] = None
+    twitter_access_token_secret: Optional[str] = None
     twitter_bearer_token: Optional[str] = None
 
     # Azure OpenAI
