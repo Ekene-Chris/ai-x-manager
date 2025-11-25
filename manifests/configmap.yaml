@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-app-config
+  namespace: ai-app
+  labels:
+    app.kubernetes.io/name: ai-app
+    kubernetes.azure.com/generator: devhub
+data:
