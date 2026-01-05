@@ -10,10 +10,9 @@ import logging
 
 from app.config import settings
 from app.database import init_db
-from app.api import tweets, ai, analytics, auth
+from app.api import tweets, ai, analytics
 from app.services.scheduler_service import SchedulerService
 from app.services.twitter_service import TwitterService
-from app.services.twitter_oauth_service import TwitterOAuthService
 from app.services.llm_service import LLMService
 from app.auth_middleware import auth_middleware, check_dashboard_auth
 
@@ -28,7 +27,6 @@ logger = logging.getLogger(__name__)
 scheduler_service = None
 twitter_service = None
 llm_service = None
-oauth_service = None
 
 
 @asynccontextmanager
@@ -42,26 +40,17 @@ async def lifespan(app: FastAPI):
     logger.info("Database initialized")
 
     # Initialize services
-    global scheduler_service, twitter_service, llm_service, oauth_service
+    global scheduler_service, twitter_service, llm_service
 
-    # Initialize OAuth service if configured
-    if settings.twitter_client_id and settings.twitter_client_secret:
-        try:
-            oauth_service = TwitterOAuthService()
-            auth.set_oauth_service(oauth_service)
-            logger.info("Twitter OAuth service initialized")
-        except Exception as e:
-            logger.warning(f"Twitter OAuth not configured: {e}")
-
-    # Initialize Twitter service (legacy mode - optional, only if legacy keys are set)
+    # Initialize Twitter service
     if settings.twitter_api_key and settings.twitter_api_secret:
         try:
             twitter_service = TwitterService()
-            logger.info("Twitter service (legacy) initialized")
+            logger.info("Twitter service initialized")
         except Exception as e:
             logger.warning(f"Twitter service not available: {e}")
     else:
-        logger.info("Legacy Twitter API keys not set - will use OAuth for tweet posting")
+        logger.warning("Twitter API keys not set in environment variables")
 
     try:
         llm_service = LLMService()
@@ -77,7 +66,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to initialize scheduler service: {e}")
 
     # Set service instances in API routers
-    tweets.set_services(scheduler_service, twitter_service, oauth_service)
+    tweets.set_services(scheduler_service, twitter_service)
     ai.set_llm_service(llm_service)
 
     logger.info("All services initialized successfully")
@@ -109,7 +98,6 @@ app.add_middleware(
 )
 
 # Include API routers
-app.include_router(auth.router, prefix="/api")
 app.include_router(tweets.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
@@ -136,15 +124,9 @@ def debug_config():
     import os
     return {
         "environment": settings.environment,
-        "twitter_client_id_set": bool(settings.twitter_client_id),
-        "twitter_client_id_length": len(settings.twitter_client_id) if settings.twitter_client_id else 0,
-        "twitter_client_secret_set": bool(settings.twitter_client_secret),
-        "twitter_redirect_uri": settings.twitter_redirect_uri,
         "azure_openai_endpoint_set": bool(settings.azure_openai_endpoint),
         "dashboard_username_set": bool(settings.dashboard_username),
         "raw_env_vars": {
-            "TWITTER_CLIENT_ID": bool(os.getenv("TWITTER_CLIENT_ID")),
-            "twitter_client_id": bool(os.getenv("twitter_client_id")),
             "ENVIRONMENT": os.getenv("ENVIRONMENT"),
         }
     }

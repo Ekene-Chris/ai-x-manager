@@ -14,10 +14,6 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "sqlite:///./ai_x_manager.db"
 
-    # X (Twitter) API - OAuth 2.0 (Recommended)
-    twitter_client_id: Optional[str] = None
-    twitter_client_secret: Optional[str] = None
-    twitter_redirect_uri: str = "http://localhost:8000/api/auth/twitter/callback"
 
     # X (Twitter) API - Legacy (Optional - for direct API keys)
     twitter_api_key: Optional[str] = None
@@ -53,19 +49,7 @@ settings = Settings()
 
 # Debug logging for configuration
 logger.info(f"Environment: {settings.environment}")
-logger.info(f"Twitter Client ID set: {bool(settings.twitter_client_id)}")
-logger.info(f"Twitter Client Secret set: {bool(settings.twitter_client_secret)}")
-logger.info(f"Twitter Redirect URI: {settings.twitter_redirect_uri}")
 
 # Check raw environment variables
 if settings.environment == "production":
     logger.info("Checking raw environment variables:")
-    logger.info(f"  TWITTER_CLIENT_ID env var: {bool(os.getenv('TWITTER_CLIENT_ID'))}")
-    logger.info(f"  twitter_client_id env var: {bool(os.getenv('twitter_client_id'))}")
-
-    # Log first few characters if set
-    client_id = os.getenv('TWITTER_CLIENT_ID') or os.getenv('twitter_client_id')
-    if client_id:
-        logger.info(f"  Client ID starts with: {client_id[:10]}...")
-    else:
-        logger.warning("  No Twitter Client ID found in environment variables!")

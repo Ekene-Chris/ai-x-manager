@@ -10,33 +10,24 @@ from app.models import Tweet, TweetStatus, TweetSource, ActivityLog
 from app.schemas import TweetCreate, TweetUpdate, TweetResponse
 from app.services.scheduler_service import SchedulerService
 from app.services.twitter_service import TwitterService
-from app.services.twitter_oauth_service import TwitterOAuthService
 
 router = APIRouter(prefix="/tweets", tags=["tweets"])
 
 # Global instances (will be initialized in main.py)
 scheduler_service: Optional[SchedulerService] = None
 twitter_service: Optional[TwitterService] = None
-oauth_service: Optional[TwitterOAuthService] = None
+twitter_service: Optional[TwitterService] = None
 
 
-def set_services(scheduler: SchedulerService, twitter: Optional[TwitterService] = None, oauth: Optional[TwitterOAuthService] = None):
+def set_services(scheduler: SchedulerService, twitter: Optional[TwitterService] = None):
     """Set service instances"""
-    global scheduler_service, twitter_service, oauth_service
+    global scheduler_service, twitter_service
     scheduler_service = scheduler
     twitter_service = twitter
-    oauth_service = oauth
 
 
 def get_twitter_client(db: Session):
-    """Get Twitter client (OAuth or legacy)"""
-    # Prefer OAuth if available
-    if oauth_service:
-        client = oauth_service.get_client(db)
-        if client:
-            return client
-
-    # Fall back to legacy service
+    """Get Twitter client"""
     if twitter_service:
         return twitter_service.client
 
